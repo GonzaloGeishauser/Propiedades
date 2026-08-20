@@ -379,7 +379,7 @@
     <div>
       <p class="eyebrow">Gestión de cartera inmobiliaria</p>
       <h1>Mis Propiedades</h1>
-      <p class="subtitle">Vista de ejemplo con 10 propiedades de muestra. Reemplazá el array <code>PROPIEDADES</code> en el código por tus 50 fichas reales — la tabla, los filtros y las alertas se recalculan solos.</p>
+      <p class="subtitle">Datos sincronizados con Google Sheets. Las altas, ediciones y bajas realizadas desde esta app se guardan en tu planilla.</p>
     </div>
   </div>
 
@@ -419,7 +419,7 @@
   <table>
     <thead>
       <tr>
-        <th data-key="referencia">Ref.<span class="arrow">↕</span></th>
+        <th data-key="id">ID<span class="arrow">↕</span></th>
         <th data-key="direccion">Dirección<span class="arrow">↕</span></th>
         <th data-key="tipo">Tipo<span class="arrow">↕</span></th>
         <th data-key="estado">Estado<span class="arrow">↕</span></th>
@@ -438,155 +438,12 @@
 <div class="overlay" id="overlay"></div>
 <div class="drawer" id="drawer"></div>
 
+<script src="app-sync.js"></script>
 <script>
 const HOY = new Date();
+const API_URL = 'https://script.google.com/macros/s/AKfycbzfQUEmYj4u-HxBzx2N007jl7pZv1_vjvxgoiE1JnC6iDrO9O_KjnQ0AtMI-RJw1YApLQ/exec';
 
-const PROPIEDADES = [
-  {
-    referencia:'BSA-001', tipo:'Departamento', uso:'Residencial',
-    direccion:{calle:'Av. Cabildo', numero:'2145', piso:'4º B', ciudad:'CABA', provincia:'CABA', pais:'Argentina', cp:'C1428'},
-    partidaARBA:'—', partidaMunicipal:'112-004-05', numGas:'0034-556-2', numLuz:'EDN-88213', numEscritura:'F°112 Reg. 4 (2015)',
-    superficie:'62 m² cub.', ambientes:3, cochera:'No',
-    valorEstimado:145000, alquilerMensual:520000, gastosFijos:180000, gastosExtraordinarios:0,
-    fechaCompra:'2015-03-10', valorCompra:78000,
-    estado:'alquilada',
-    inquilino:{nombre:'Marcos Ibáñez', dni:'32.145.778', tel:'11-4455-7788', email:'marcos.ibanez@mail.com'},
-    contrato:{inicio:'2024-09-01', fin:'2026-08-31', duracionMeses:24, renovacion:'automática 12m'},
-    deposito:{monto:520000, donde:'Caja de ahorro propietario'},
-    garantiaAdicional:'Seguro de caución (Federal Sur)',
-    moraDias:0, ultimoAumento:'2026-03-01', proximoAumento:'2026-09-01',
-    seguroVencimiento:'2026-11-15', documentacion:'Completa'
-  },
-  {
-    referencia:'BSA-002', tipo:'Local comercial', uso:'Comercial',
-    direccion:{calle:'Av. Rivadavia', numero:'8820', piso:'PB', ciudad:'CABA', provincia:'CABA', pais:'Argentina', cp:'C1408'},
-    partidaARBA:'—', partidaMunicipal:'098-771-01', numGas:'—', numLuz:'EDS-11209', numEscritura:'F°44 Reg. 12 (2011)',
-    superficie:'90 m² cub.', ambientes:1, cochera:'No',
-    valorEstimado:210000, alquilerMensual:0, gastosFijos:95000, gastosExtraordinarios:340000,
-    fechaCompra:'2011-06-20', valorCompra:110000,
-    estado:'vacia',
-    inquilino:null,
-    contrato:null,
-    deposito:null,
-    garantiaAdicional:'—',
-    moraDias:null, ultimoAumento:'—', proximoAumento:'—',
-    seguroVencimiento:'2026-09-05', documentacion:'Falta certificado de dominio'
-  },
-  {
-    referencia:'BSA-003', tipo:'Casa', uso:'Residencial',
-    direccion:{calle:'San Martín', numero:'450', piso:'—', ciudad:'San Isidro', provincia:'Buenos Aires', pais:'Argentina', cp:'B1642'},
-    partidaARBA:'050-112233-4', partidaMunicipal:'SI-3341', numGas:'0091-224-9', numLuz:'EDN-55302', numEscritura:'F°201 Reg. 7 (2009)',
-    superficie:'180 m² cub. / 320 m² lote', ambientes:5, cochera:'Sí (2)',
-    valorEstimado:420000, alquilerMensual:980000, gastosFijos:210000, gastosExtraordinarios:0,
-    fechaCompra:'2009-11-02', valorCompra:190000,
-    estado:'alquilada',
-    inquilino:{nombre:'Familia Sosa Duarte', dni:'CUIT 27-29887766-3', tel:'11-2233-9987', email:'sosaduarte@mail.com'},
-    contrato:{inicio:'2023-10-01', fin:'2026-09-30', duracionMeses:36, renovacion:'a definir'},
-    deposito:{monto:980000, donde:'Plazo fijo Banco Galicia'},
-    garantiaAdicional:'Garante propietario (padre del inquilino)',
-    moraDias:12, ultimoAumento:'2026-04-01', proximoAumento:'2026-10-01',
-    seguroVencimiento:'2027-01-20', documentacion:'Completa'
-  },
-  {
-    referencia:'BSA-004', tipo:'Oficina', uso:'Comercial',
-    direccion:{calle:'Av. Corrientes', numero:'1234', piso:'8º "A"', ciudad:'CABA', provincia:'CABA', pais:'Argentina', cp:'C1043'},
-    partidaARBA:'—', partidaMunicipal:'055-221-07', numGas:'—', numLuz:'EDS-99123', numEscritura:'F°88 Reg. 2 (2018)',
-    superficie:'48 m² cub.', ambientes:2, cochera:'No',
-    valorEstimado:130000, alquilerMensual:410000, gastosFijos:150000, gastosExtraordinarios:0,
-    fechaCompra:'2018-02-14', valorCompra:95000,
-    estado:'alquilada',
-    inquilino:{nombre:'Estudio Contable Vega SRL', dni:'CUIT 30-71234567-8', tel:'11-6677-1122', email:'admin@vegasrl.com.ar'},
-    contrato:{inicio:'2025-01-15', fin:'2026-09-14', duracionMeses:24, renovacion:'automática 12m'},
-    deposito:{monto:410000, donde:'Caja de ahorro propietario'},
-    garantiaAdicional:'Seguro de caución (Porteña)',
-    moraDias:0, ultimoAumento:'2026-01-15', proximoAumento:'2026-07-15',
-    seguroVencimiento:'2026-08-30', documentacion:'Completa'
-  },
-  {
-    referencia:'BSA-005', tipo:'Departamento', uso:'Residencial',
-    direccion:{calle:'Bulnes', numero:'788', piso:'2º C', ciudad:'CABA', provincia:'CABA', pais:'Argentina', cp:'C1176'},
-    partidaARBA:'—', partidaMunicipal:'201-556-02', numGas:'0012-334-1', numLuz:'EDN-33847', numEscritura:'F°67 Reg. 9 (2020)',
-    superficie:'45 m² cub.', ambientes:2, cochera:'No',
-    valorEstimado:110000, alquilerMensual:0, gastosFijos:120000, gastosExtraordinarios:610000,
-    fechaCompra:'2020-08-05', valorCompra:88000,
-    estado:'reforma',
-    inquilino:null, contrato:null, deposito:null,
-    garantiaAdicional:'—', moraDias:null, ultimoAumento:'—', proximoAumento:'—',
-    seguroVencimiento:'2026-10-01', documentacion:'Completa'
-  },
-  {
-    referencia:'BSA-006', tipo:'Galpón', uso:'Comercial',
-    direccion:{calle:'Ruta 8 km 42', numero:'S/N', piso:'—', ciudad:'Pilar', provincia:'Buenos Aires', pais:'Argentina', cp:'B1629'},
-    partidaARBA:'081-990045-1', partidaMunicipal:'PIL-9021', numGas:'—', numLuz:'EDN-70012', numEscritura:'F°15 Reg. 3 (2014)',
-    superficie:'800 m² cub.', ambientes:'—', cochera:'Playón',
-    valorEstimado:390000, alquilerMensual:1450000, gastosFijos:260000, gastosExtraordinarios:0,
-    fechaCompra:'2014-05-30', valorCompra:210000,
-    estado:'alquilada',
-    inquilino:{nombre:'Logística del Sur SA', dni:'CUIT 30-68877211-5', tel:'11-3344-8800', email:'contacto@logisticasur.com'},
-    contrato:{inicio:'2022-06-01', fin:'2026-09-05', duracionMeses:48, renovacion:'en negociación'},
-    deposito:{monto:1450000, donde:'Plazo fijo Banco Nación'},
-    garantiaAdicional:'Hipoteca sobre otro inmueble',
-    moraDias:0, ultimoAumento:'2026-06-01', proximoAumento:'2026-12-01',
-    seguroVencimiento:'2026-09-10', documentacion:'Completa'
-  },
-  {
-    referencia:'BSA-007', tipo:'Departamento', uso:'Residencial',
-    direccion:{calle:'Mitre', numero:'1560', piso:'6º A', ciudad:'Rosario', provincia:'Santa Fe', pais:'Argentina', cp:'S2000'},
-    partidaARBA:'—', partidaMunicipal:'ROS-4471', numGas:'0055-112-8', numLuz:'EPE-22190', numEscritura:'F°33 Reg. 5 (2017)',
-    superficie:'58 m² cub.', ambientes:3, cochera:'No',
-    valorEstimado:98000, alquilerMensual:340000, gastosFijos:110000, gastosExtraordinarios:0,
-    fechaCompra:'2017-09-18', valorCompra:62000,
-    estado:'alquilada',
-    inquilino:{nombre:'Lucía Fernández', dni:'35.667.221', tel:'341-455-8890', email:'lu.fernandez@mail.com'},
-    contrato:{inicio:'2025-11-01', fin:'2027-10-31', duracionMeses:24, renovacion:'automática 12m'},
-    deposito:{monto:340000, donde:'Caja de ahorro propietario'},
-    garantiaAdicional:'Garantía propietaria',
-    moraDias:0, ultimoAumento:'2026-05-01', proximoAumento:'2026-11-01',
-    seguroVencimiento:'2027-02-01', documentacion:'Completa'
-  },
-  {
-    referencia:'BSA-008', tipo:'Casa', uso:'Residencial',
-    direccion:{calle:'Los Alerces', numero:'220', piso:'—', ciudad:'Tigre', provincia:'Buenos Aires', pais:'Argentina', cp:'B1648'},
-    partidaARBA:'060-334211-9', partidaMunicipal:'TIG-1187', numGas:'0078-990-4', numLuz:'EDN-40021', numEscritura:'F°91 Reg. 1 (2019)',
-    superficie:'140 m² cub. / 400 m² lote', ambientes:4, cochera:'Sí (1)',
-    valorEstimado:260000, alquilerMensual:0, gastosFijos:140000, gastosExtraordinarios:0,
-    fechaCompra:'2019-12-01', valorCompra:175000,
-    estado:'venta',
-    inquilino:null, contrato:null, deposito:null,
-    garantiaAdicional:'—', moraDias:null, ultimoAumento:'—', proximoAumento:'—',
-    seguroVencimiento:'2026-09-28', documentacion:'Completa'
-  },
-  {
-    referencia:'BSA-009', tipo:'Departamento', uso:'Residencial',
-    direccion:{calle:'Av. Pueyrredón', numero:'1122', piso:'11º D', ciudad:'CABA', provincia:'CABA', pais:'Argentina', cp:'C1032'},
-    partidaARBA:'—', partidaMunicipal:'077-119-03', numGas:'0021-556-3', numLuz:'EDS-66120', numEscritura:'F°122 Reg. 6 (2021)',
-    superficie:'38 m² cub.', ambientes:1, cochera:'No',
-    valorEstimado:92000, alquilerMensual:295000, gastosFijos:100000, gastosExtraordinarios:0,
-    fechaCompra:'2021-04-22', valorCompra:80000,
-    estado:'alquilada',
-    inquilino:{nombre:'Julián Ríos', dni:'38.221.005', tel:'11-7788-2233', email:'julian.rios@mail.com'},
-    contrato:{inicio:'2024-10-01', fin:'2026-09-30', duracionMeses:24, renovacion:'a definir'},
-    deposito:{monto:295000, donde:'Caja de ahorro propietario'},
-    garantiaAdicional:'Seguro de caución (Federal Sur)',
-    moraDias:34, ultimoAumento:'2026-04-01', proximoAumento:'2026-10-01',
-    seguroVencimiento:'2026-12-12', documentacion:'Completa'
-  },
-  {
-    referencia:'BSA-010', tipo:'Local comercial', uso:'Comercial',
-    direccion:{calle:'Belgrano', numero:'980', piso:'PB', ciudad:'Mar del Plata', provincia:'Buenos Aires', pais:'Argentina', cp:'B7600'},
-    partidaARBA:'070-556689-2', partidaMunicipal:'MDP-2298', numGas:'—', numLuz:'EDEA-11004', numEscritura:'F°58 Reg. 8 (2016)',
-    superficie:'70 m² cub.', ambientes:1, cochera:'No',
-    valorEstimado:155000, alquilerMensual:480000, gastosFijos:130000, gastosExtraordinarios:0,
-    fechaCompra:'2016-07-11', valorCompra:98000,
-    estado:'alquilada',
-    inquilino:{nombre:'Heladería Costa Azul SRL', dni:'CUIT 30-70011223-4', tel:'223-455-6677', email:'costaazul@mail.com'},
-    contrato:{inicio:'2023-08-01', fin:'2026-11-15', duracionMeses:36, renovacion:'automática 12m'},
-    deposito:{monto:480000, donde:'Plazo fijo Banco Provincia'},
-    garantiaAdicional:'Garante propietario',
-    moraDias:0, ultimoAumento:'2026-02-01', proximoAumento:'2026-08-01',
-    seguroVencimiento:'2026-09-01', documentacion:'Falta plano actualizado'
-  }
-];
+const PROPIEDADES = [];
 
 function diasEntre(fechaStr){
   const f = new Date(fechaStr);
@@ -690,6 +547,7 @@ function sortData(data){
       case 'finContrato': av=a.contrato?a.contrato.fin:'9999'; bv=b.contrato?b.contrato.fin:'9999'; break;
       case 'mora': av=a.moraDias||0; bv=b.moraDias||0; break;
       case 'alquiler': av=a.alquilerMensual||0; bv=b.alquilerMensual||0; break;
+      case 'id': av=a.id||a.referencia||''; bv=b.id||b.referencia||''; break;
       default: av=a[sortKey]; bv=b[sortKey];
     }
     if(typeof av==='string') return av.localeCompare(bv)*sortDir;
@@ -707,7 +565,7 @@ function renderTabla(){
     const mora = p.moraDias===null ? '—' : (p.moraDias>0 ? `<span class="mora-tag">${p.moraDias}d</span>` : `<span class="mora-ok">Al día</span>`);
     return `
     <tr data-idx="${idx}">
-      <td class="ref">${p.referencia}</td>
+      <td class="ref">${p.id || p.referencia}</td>
       <td class="dir">
         <div class="calle">${p.direccion.calle} ${p.direccion.numero}</div>
         <div class="ciudad">${p.direccion.ciudad}, ${p.direccion.provincia}</div>
@@ -738,7 +596,7 @@ function openDrawer(idx){
   document.getElementById('drawer').innerHTML = `
     <button class="drawer-close" id="drawerClose">✕</button>
     <div class="drawer-head">
-      <div class="ref">${p.referencia}</div>
+      <div class="ref">${p.id || p.referencia}</div>
       <h2>${d.calle} ${d.numero}</h2>
       <div class="sub">${d.ciudad}, ${d.provincia} · ${d.pais} · CP ${d.cp}</div>
       <div class="drawer-toolbar">
@@ -751,6 +609,8 @@ function openDrawer(idx){
       <div class="section">
         <div class="section-title">Identificación</div>
         <div class="field-grid">
+          <div class="field"><div class="k">ID</div><div class="v mono">${p.id || p.referencia}</div></div>
+          <div class="field"><div class="k">Referencia</div><div class="v mono">${p.referencia || p.id}</div></div>
           <div class="field"><div class="k">Tipo</div><div class="v">${p.tipo}</div></div>
           <div class="field"><div class="k">Uso actual</div><div class="v">${p.uso}</div></div>
           <div class="field"><div class="k">Superficie</div><div class="v">${p.superficie}</div></div>
@@ -843,7 +703,8 @@ function openForm(idx){
       <div class="section">
         <div class="section-title">Identificación</div>
         <div class="form-grid">
-          <div class="form-field"><label>Referencia</label><input id="f_referencia" value="${p.referencia||''}" placeholder="ej: BSA-011"></div>
+          <div class="form-field"><label>ID *</label><input id="f_id" value="${p.id||p.referencia||''}" placeholder="ej: PROP-001" ${idx!==null?'readonly':''}></div>
+          <div class="form-field"><label>Referencia interna</label><input id="f_referencia" value="${p.referencia||''}" placeholder="si queda vacía, usa el ID"></div>
           <div class="form-field"><label>Tipo</label><select id="f_tipo">${tipos.map(t=>`<option ${p.tipo===t?'selected':''}>${t}</option>`).join('')}</select></div>
           <div class="form-field"><label>Uso actual</label><select id="f_uso">${usos.map(t=>`<option ${p.uso===t?'selected':''}>${t}</option>`).join('')}</select></div>
           <div class="form-field"><label>Estado</label>
@@ -856,6 +717,7 @@ function openForm(idx){
           </div>
           <div class="form-field"><label>Calle</label><input id="f_calle" value="${d.calle||''}"></div>
           <div class="form-field"><label>Número</label><input id="f_numero" value="${d.numero||''}"></div>
+          <div class="form-field"><label>Piso / unidad</label><input id="f_piso" value="${d.piso||''}"></div>
           <div class="form-field"><label>Ciudad</label><input id="f_ciudad" value="${d.ciudad||''}"></div>
           <div class="form-field"><label>Provincia / Estado</label><input id="f_provincia" value="${d.provincia||''}"></div>
           <div class="form-field"><label>País</label><input id="f_pais" value="${d.pais||'Argentina'}"></div>
@@ -933,10 +795,11 @@ function collectFormData(){
   const contratoFin = gv('f_contratoFin');
   const depositoMonto = gv('f_depositoMonto');
   return {
-    referencia: gv('f_referencia'),
+    id: gv('f_id'),
+    referencia: gv('f_referencia') || gv('f_id'),
     tipo: gv('f_tipo'),
     uso: gv('f_uso'),
-    direccion:{ calle:gv('f_calle'), numero:gv('f_numero'), ciudad:gv('f_ciudad'), provincia:gv('f_provincia'), pais:gv('f_pais')||'Argentina', cp:gv('f_cp') },
+    direccion:{ calle:gv('f_calle'), numero:gv('f_numero'), piso:gv('f_piso'), ciudad:gv('f_ciudad'), provincia:gv('f_provincia'), pais:gv('f_pais')||'Argentina', cp:gv('f_cp') },
     partidaARBA:gv('f_partidaARBA')||'—',
     partidaMunicipal:gv('f_partidaMunicipal')||'—',
     numGas:gv('f_numGas')||'—',
@@ -964,53 +827,84 @@ function collectFormData(){
   };
 }
 
-function saveForm(idx){
+async function saveForm(idx){
   const p = collectFormData();
-  if(!p.referencia || !p.direccion.calle){
-    alert('Completá al menos la Referencia y la Calle.');
+  const originalId = idx===null ? null : PROPIEDADES[idx].id;
+  if(!p.id || !p.direccion.calle){
+    alert('Completá al menos el ID y la Calle.');
     return;
   }
-  if(idx===null){ PROPIEDADES.push(p); } else { PROPIEDADES[idx] = p; }
-  guardarDatos();
-  closeDrawer();
-  renderKPIs(); renderAlertas(); renderTabla();
+  if(idx!==null && originalId && p.id!==originalId){
+    alert('El ID no se puede cambiar después de crear la propiedad.');
+    return;
+  }
+  if(!PropertySync.validateManualId(p.id, PROPIEDADES, originalId)){
+    alert('Ya existe una propiedad con ese ID. Elegí otro.');
+    return;
+  }
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try{
+    await apiSave(p);
+    await cargarDatos();
+    closeDrawer();
+    renderKPIs(); renderAlertas(); renderTabla();
+  }catch(e){
+    console.error(e);
+    alert('No se pudo guardar en Google Sheets. Revisá tu conexión e intentá nuevamente.');
+    btn.disabled = false; btn.textContent = 'Guardar';
+  }
 }
 
-function deleteProperty(idx){
+async function deleteProperty(idx){
   if(!confirm('¿Eliminar esta propiedad de la cartera?')) return;
-  PROPIEDADES.splice(idx,1);
-  guardarDatos();
-  closeDrawer();
-  renderKPIs(); renderAlertas(); renderTabla();
+  const p = PROPIEDADES[idx];
+  if(!p || !p.id) return;
+  try{
+    await apiDelete(p.id);
+    await cargarDatos();
+    closeDrawer();
+    renderKPIs(); renderAlertas(); renderTabla();
+  }catch(e){
+    console.error(e);
+    alert('No se pudo eliminar la propiedad de Google Sheets.');
+  }
 }
 
-// ---------- PERSISTENCIA ----------
-async function cargarDatos(){
-  try{
-    const raw = localStorage.getItem('propiedades');
-    if(raw){
-      const stored = JSON.parse(raw);
-      if(Array.isArray(stored)){
-        PROPIEDADES.length = 0;
-        PROPIEDADES.push(...stored);
-      }
-    }
-  }catch(e){
-    console.error('No se pudieron cargar los datos guardados', e);
-  }
+// ---------- GOOGLE SHEETS ----------
+async function apiRequest(url, options={}){
+  const res = await fetch(url, {cache:'no-store', ...options});
+  if(!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  if(!data.ok) throw new Error(data.error || 'Error en la API');
+  return data;
 }
-async function guardarDatos(){
-  try{
-    localStorage.setItem('propiedades', JSON.stringify(PROPIEDADES));
-  }catch(e){
-    console.error('No se pudo guardar', e);
-    alert('No se pudo guardar en este dispositivo. Exportá un respaldo antes de cerrar.');
-  }
+
+async function apiSave(p){
+  return apiRequest(API_URL, {
+    method:'POST',
+    body: JSON.stringify({action:'save', propiedad:PropertySync.toSheet(p)})
+  });
+}
+
+async function apiDelete(id){
+  return apiRequest(API_URL, {
+    method:'POST',
+    body: JSON.stringify({action:'delete', id})
+  });
+}
+
+async function cargarDatos(){
+  const data = await apiRequest(`${API_URL}?action=list&_=${Date.now()}`);
+  const props = (data.propiedades || []).map(PropertySync.fromSheet);
+  PROPIEDADES.length = 0;
+  PROPIEDADES.push(...props);
 }
 
 // ---------- EXPORTAR A EXCEL ----------
 function exportarExcel(){
   const filas = PROPIEDADES.map(p=>({
+    'ID':p.id||p.referencia,
     'Referencia':p.referencia,
     'Calle':p.direccion.calle, 'Número':p.direccion.numero, 'Ciudad':p.direccion.ciudad,
     'Provincia':p.direccion.provincia, 'País':p.direccion.pais, 'CP':p.direccion.cp,
@@ -1146,7 +1040,7 @@ function crearPDFRecibo(p, data, numero){
   };
 
   campo('Fecha de emisión', fmtFecha(data.fecha));
-  campo('Inmueble', `${p.direccion.calle} ${p.direccion.numero}, ${p.direccion.ciudad}, ${p.direccion.provincia}  ·  Ref. ${p.referencia}  ·  ${p.tipo}`);
+  campo('Inmueble', `${p.direccion.calle} ${p.direccion.numero}, ${p.direccion.ciudad}, ${p.direccion.provincia}  ·  ID ${p.id || p.referencia}  ·  ${p.tipo}`);
   campo('Inquilino / pagador', p.inquilino ? `${p.inquilino.nombre}  ·  DNI/CUIT ${p.inquilino.dni||'—'}` : '—');
 
   doc.setDrawColor(190); doc.line(left, y, right, y);
@@ -1193,7 +1087,7 @@ function crearPDFRecibo(p, data, numero){
   doc.text('Firma propietario', left, y+14);
   doc.text('Firma inquilino', right-180, y+14);
 
-  doc.save(`comprobante_${p.referencia}_${data.fecha}.pdf`);
+  doc.save(`comprobante_${p.id || p.referencia}_${data.fecha}.pdf`);
 }
 
 // ---------- INIT ----------
@@ -1235,7 +1129,12 @@ window.addEventListener('appinstalled', ()=>{
 });
 
 async function init(){
-  await cargarDatos();
+  try{
+    await cargarDatos();
+  }catch(e){
+    console.error(e);
+    alert('No se pudo conectar con Google Sheets. La app se abrirá vacía hasta recuperar la conexión.');
+  }
   renderKPIs();
   renderAlertas();
   initFilters();
