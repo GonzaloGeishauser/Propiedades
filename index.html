@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2C5F5A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mis Propiedades">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Cartera de Propiedades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#1F2A30;
+    --ink-soft:#3C4A50;
+    --paper:#F5F2E9;
+    --paper-raised:#FFFFFF;
+    --line:#DCD5C4;
+    --line-strong:#B9B097;
+    --teal:#2C5F5A;
+    --teal-soft:#E4EEEC;
+    --ochre:#B8842C;
+    --ochre-soft:#F3E6CC;
+    --red:#A63A2F;
+    --red-soft:#F5E1DD;
+    --green:#3F6B4D;
+    --green-soft:#E4EEE6;
+    --gray:#8A8471;
+
+    --serif: 'Source Serif 4', Georgia, serif;
+    --sans: 'Inter', -apple-system, sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--ochre-soft);}
+
+  /* ---------- HEADER ---------- */
+  header{
+    padding:36px 40px 24px;
+    border-bottom:1px solid var(--line);
+    background:
+      linear-gradient(var(--paper),var(--paper)),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, var(--line) 39px, var(--line) 40px);
+    background-size:100% 100%, 40px 100%;
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--gray);
+    margin:0 0 6px;
+  }
+  h1{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:32px;
+    margin:0;
+    letter-spacing:-.01em;
+  }
+  .header-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:24px;
+    flex-wrap:wrap;
+  }
+  .subtitle{
+    font-size:14px;
+    color:var(--ink-soft);
+    margin-top:6px;
+    max-width:560px;
+    line-height:1.5;
+  }
+
+  .kpis{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    margin-top:26px;
+  }
+  .kpi{
+    background:var(--paper-raised);
+    padding:16px 18px;
+  }
+  .kpi .label{
+    font-family:var(--mono);
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--gray);
+    margin-bottom:8px;
+  }
+  .kpi .value{
+    font-family:var(--serif);
+    font-size:26px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .kpi .value.teal{color:var(--teal);}
+  .kpi .value.red{color:var(--red);}
+  .kpi .sub{font-size:11.5px;color:var(--gray);margin-top:3px;}
+
+  /* ---------- ALERTS ---------- */
+  .alerts-wrap{padding:22px 40px 0;}
+  .alerts-title{
+    font-family:var(--mono);
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    color:var(--gray);
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .alerts-title .count{
+    background:var(--red);
+    color:#fff;
+    border-radius:20px;
+    padding:1px 8px;
+    font-size:10.5px;
+  }
+  .alerts{
+    display:flex;
+    gap:12px;
+    overflow-x:auto;
+    padding-bottom:6px;
+  }
+  .alert-card{
+    flex:0 0 auto;
+    min-width:250px;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-left:3px solid var(--red);
+    padding:12px 14px;
+    position:relative;
+  }
+  .alert-card.warn{border-left-color:var(--ochre);}
+  .alert-card .tag{
+    font-family:var(--mono);
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--red);
+  }
+  .alert-card.warn .tag{color:var(--ochre);}
+  .alert-card .ref{font-family:var(--mono);font-size:11px;color:var(--gray);margin-top:4px;}
+  .alert-card .desc{font-size:13px;margin-top:4px;font-weight:500;}
+
+  /* ---------- FILTER BAR ---------- */
+  .filters{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    padding:22px 40px 16px;
+    flex-wrap:wrap;
+  }
+  .filters input[type=text]{
+    font-family:var(--sans);
+    padding:9px 12px;
+    border:1px solid var(--line-strong);
+    background:var(--paper-raised);
+    font-size:13px;
+    min-width:220px;
+    color:var(--ink);
+  }
+  .filters select{
+    font-family:var(--sans);
+    padding:9px 10px;
+    border:1px solid var(--line-strong);
+    background:var(--paper-raised);
+    font-size:13px;
+    color:var(--ink);
+  }
+  .filters input:focus, .filters select:focus{outline:2px solid var(--teal);outline-offset:1px;}
+  .result-count{font-family:var(--mono);font-size:11.5px;color:var(--gray);}
+  .btn-add{
+    margin-left:auto;
+    font-family:var(--sans);
+    font-size:13px;
+    font-weight:600;
+    color:#fff;
+    background:var(--teal);
+    border:none;
+    padding:9px 16px;
+    cursor:pointer;
+    letter-spacing:.01em;
+  }
+  .btn-add:hover{background:#254e4a;}
+  .btn-export{
+    font-family:var(--sans);
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink);
+    background:var(--paper-raised);
+    border:1px solid var(--line-strong);
+    padding:9px 16px;
+    cursor:pointer;
+  }
+  .btn-export:hover{background:var(--ochre-soft);border-color:var(--ochre);}
+  .btn-receipt{
+    font-family:var(--sans);
+    font-size:13px;
+    font-weight:600;
+    color:var(--ochre);
+    background:var(--ochre-soft);
+    border:1px solid var(--ochre);
+    padding:9px 16px;
+    cursor:pointer;
+  }
+  .btn-receipt:hover{background:#ecd9ae;}
+  .drawer-toolbar{display:flex;gap:8px;margin-top:14px;}
+  .drawer-btn{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;
+    padding:6px 11px;border:1px solid var(--line-strong);background:none;cursor:pointer;color:var(--ink-soft);
+  }
+  .drawer-btn:hover{border-color:var(--teal);color:var(--teal);}
+
+  /* ---------- FORM ---------- */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;}
+  .form-grid.single{grid-template-columns:1fr;}
+  .form-field{font-size:13px;}
+  .form-field.full{grid-column:1/-1;}
+  .form-field label{
+    display:block;font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
+    letter-spacing:.06em;color:var(--gray);margin-bottom:4px;
+  }
+  .form-field input, .form-field select{
+    width:100%;font-family:var(--sans);font-size:13px;padding:8px 10px;
+    border:1px solid var(--line-strong);background:var(--paper-raised);color:var(--ink);
+  }
+  .form-field input:focus, .form-field select:focus{outline:2px solid var(--teal);outline-offset:1px;}
+  .form-actions{
+    display:flex;gap:10px;margin-top:26px;padding-top:18px;border-top:1px solid var(--line);
+  }
+  .form-actions button{
+    font-family:var(--sans);font-size:13px;font-weight:600;padding:10px 18px;border:none;cursor:pointer;
+  }
+  .btn-save{background:var(--teal);color:#fff;}
+  .btn-save:hover{background:#254e4a;}
+  .btn-delete{background:var(--red-soft);color:var(--red);}
+  .btn-delete:hover{background:#efd0ca;}
+  .btn-cancel{background:none;color:var(--gray);}
+
+  /* ---------- TABLE ---------- */
+  .table-wrap{padding:0 40px 50px;overflow-x:auto;}
+  table{
+    width:100%;
+    border-collapse:collapse;
+    background:var(--paper-raised);
+    font-size:13px;
+    min-width:1080px;
+  }
+  thead th{
+    text-align:left;
+    font-family:var(--mono);
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--gray);
+    font-weight:500;
+    padding:10px 14px;
+    border-bottom:2px solid var(--ink);
+    cursor:pointer;
+    white-space:nowrap;
+    user-select:none;
+  }
+  thead th:hover{color:var(--ink);}
+  thead th .arrow{opacity:.4;margin-left:3px;}
+  tbody tr{
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+    transition:background .12s ease;
+  }
+  tbody tr:hover{background:var(--teal-soft);}
+  td{padding:12px 14px;vertical-align:top;}
+  td.ref{font-family:var(--mono);font-size:12px;color:var(--ink-soft);}
+  td.dir{max-width:220px;}
+  td.dir .calle{font-weight:600;}
+  td.dir .ciudad{color:var(--gray);font-size:12px;}
+  td.num{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;}
+  .stamp{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    padding:3px 9px 3px 7px;
+    font-family:var(--mono);
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    border:1px solid currentColor;
+    border-radius:2px;
+    white-space:nowrap;
+  }
+  .stamp::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .stamp.alquilada{color:var(--teal);background:var(--teal-soft);}
+  .stamp.vacia{color:var(--gray);background:#EEEBE0;}
+  .stamp.venta{color:var(--ochre);background:var(--ochre-soft);}
+  .stamp.reforma{color:var(--red);background:var(--red-soft);}
+  .mora-tag{font-family:var(--mono);font-size:11px;color:var(--red);font-weight:600;}
+  .mora-ok{font-family:var(--mono);font-size:11px;color:var(--green);}
+
+  /* ---------- DRAWER ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(31,42,48,.35);
+    opacity:0;pointer-events:none;transition:opacity .2s ease;z-index:40;
+  }
+  .overlay.open{opacity:1;pointer-events:auto;}
+  .drawer{
+    position:fixed;top:0;right:0;bottom:0;
+    width:min(480px, 92vw);
+    background:var(--paper);
+    border-left:1px solid var(--line-strong);
+    transform:translateX(100%);
+    transition:transform .25s ease;
+    z-index:41;
+    overflow-y:auto;
+    box-shadow:-8px 0 24px rgba(0,0,0,.08);
+  }
+  .drawer.open{transform:translateX(0);}
+  .drawer-head{
+    padding:24px 26px 18px;
+    border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:var(--paper);
+  }
+  .drawer-close{
+    position:absolute;top:20px;right:22px;
+    background:none;border:none;font-size:20px;cursor:pointer;color:var(--gray);
+    font-family:var(--sans);line-height:1;
+  }
+  .drawer-head .ref{font-family:var(--mono);font-size:11px;color:var(--gray);letter-spacing:.06em;text-transform:uppercase;}
+  .drawer-head h2{font-family:var(--serif);font-size:22px;margin:6px 0 4px;font-weight:600;}
+  .drawer-head .sub{font-size:12.5px;color:var(--ink-soft);}
+  .drawer-body{padding:6px 26px 40px;}
+  .section{margin-top:22px;}
+  .section-title{
+    font-family:var(--mono);font-size:10.5px;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--ochre);margin-bottom:10px;
+    border-bottom:1px solid var(--ochre-soft);padding-bottom:5px;
+  }
+  .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;}
+  .field{font-size:13px;}
+  .field .k{font-size:11px;color:var(--gray);margin-bottom:2px;}
+  .field .v{color:var(--ink);font-weight:500;}
+  .field .v.mono{font-family:var(--mono);font-weight:400;}
+  .field.full{grid-column:1/-1;}
+
+  footer{
+    padding:20px 40px 40px;
+    font-size:11.5px;
+    color:var(--gray);
+    font-family:var(--mono);
+    border-top:1px solid var(--line);
+  }
+
+  @media (max-width:900px){
+    .kpis{grid-template-columns:repeat(2,1fr);}
+    header,.alerts-wrap,.filters,.table-wrap{padding-left:18px;padding-right:18px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-row">
+    <div>
+      <p class="eyebrow">Gestión de cartera inmobiliaria</p>
+      <h1>Mis Propiedades</h1>
+      <p class="subtitle">Vista de ejemplo con 10 propiedades de muestra. Reemplazá el array <code>PROPIEDADES</code> en el código por tus 50 fichas reales — la tabla, los filtros y las alertas se recalculan solos.</p>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+</header>
+
+<div class="alerts-wrap">
+  <div class="alerts-title">Alertas activas <span class="count" id="alertCount">0</span></div>
+  <div class="alerts" id="alerts"></div>
+</div>
+
+<div class="filters">
+  <input type="text" id="search" placeholder="Buscar por dirección, referencia o inquilino…">
+  <select id="fEstado">
+    <option value="">Estado: todos</option>
+    <option value="alquilada">Alquilada</option>
+    <option value="vacia">Vacía</option>
+    <option value="venta">En venta</option>
+    <option value="reforma">En reforma</option>
+  </select>
+  <select id="fTipo">
+    <option value="">Tipo: todos</option>
+  </select>
+  <select id="fMora">
+    <option value="">Mora: todos</option>
+    <option value="mora">Con mora</option>
+    <option value="ok">Al día</option>
+  </select>
+  <span class="result-count" id="resultCount"></span>
+  <button id="btnInstall" class="btn-export" style="display:none">Instalar app</button>
+  <button id="btnReceipt" class="btn-receipt">Comprobante de pago</button>
+  <button id="btnExport" class="btn-export">Exportar a Excel</button>
+  <button id="btnAdd" class="btn-add">+ Agregar propiedad</button>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th data-key="referencia">Ref.<span class="arrow">↕</span></th>
+        <th data-key="direccion">Dirección<span class="arrow">↕</span></th>
+        <th data-key="tipo">Tipo<span class="arrow">↕</span></th>
+        <th data-key="estado">Estado<span class="arrow">↕</span></th>
+        <th data-key="inquilino">Inquilino<span class="arrow">↕</span></th>
+        <th data-key="finContrato">Vence contrato<span class="arrow">↕</span></th>
+        <th data-key="mora">Mora<span class="arrow">↕</span></th>
+        <th data-key="alquiler">Alquiler<span class="arrow">↕</span></th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<footer id="footerFecha">Datos guardados en este dispositivo · Click en una fila para ver la ficha completa</footer>
+
+<div class="overlay" id="overlay"></div>
+<div class="drawer" id="drawer"></div>
+
+<script>
+const HOY = new Date();
+
+const PROPIEDADES = [
+  {
+    referencia:'BSA-001', tipo:'Departamento', uso:'Residencial',
+    direccion:{calle:'Av. Cabildo', numero:'2145', piso:'4º B', ciudad:'CABA', provincia:'CABA', pais:'Argentina', cp:'C1428'},
+    partidaARBA:'—', partidaMunicipal:'112-004-05', numGas:'0034-556-2', numLuz:'EDN-88213', numEscritura:'F°112 Reg. 4 (2015)',
+    superficie:'62 m² cub.', ambientes:3, cochera:'No',
+    valorEstimado:145000, alquilerMensual:520000, gastosFijos:180000, gastosExtraordinarios:0,
+    fechaCompra:'2015-03-10', valorCompra:78000,
+    estado:'alquilada',
+    inquilino:{nombre:'Marcos Ibáñez', dni:'32.145.778', tel:'11-4455-7788', email:'marcos.ibanez@mail.com'},
+    contrato:{inicio:'2024-09-01', fin:'2026-08-31', duracionMeses:24, renovacion:'automática 12m'},
+    deposito:{monto:520000, donde:'Caja de ahorro propietario'},
+    garantiaAdicional:'Seguro de caución (Federal Sur)',
+    moraDias:0, ultimoAumento:'2026-03-01', proximoAumento:'2026-09-01',
+    seguroVencimiento:'2026-11-15', documentacion:'Completa'
+  },
+  {
+    referencia:'BSA-002', tipo:'Local comercial', uso:'Comercial',
+    direccion:{calle:'Av. Rivadavia', numero:'8820', piso:'PB', ciudad:'CABA', provincia:'CABA', pais:'Argentina', cp:'C1408'},
+    partidaARBA:'—', partidaMunicipal:'098-771-01', numGas:'—', numLuz:'EDS-11209', numEscritura:'F°44 Reg. 12 (2011)',
+    superficie:'90 m² cub.', ambientes:1, cochera:'No',
+    valorEstimado:210000, alquilerMensual:0, gastosFijos:95000, gastosExtraordinarios:340000,
+    fechaCompra:'2011-06-20', valorCompra:110000,
+    estado:'vacia',
+    inquilino:null,
+    contrato:null,
+    deposito:null,
+    garantiaAdicional:'—',
+    moraDias:null, ultimoAumento:'—', proximoAumento:'—',
+    seguroVencimiento:'2026-09-05', documentacion:'Falta certificado de dominio'
+  },
+  {
+    referencia:'BSA-003', tipo:'Casa', uso:'Residencial',
+    direccion:{calle:'San Martín', numero:'450', piso:'—', ciudad:'San Isidro', provincia:'Buenos Aires', pais:'Argentina', cp:'B1642'},
+    partidaARBA:'050-112233-4', partidaMunicipal:'SI-3341', numGas:'0091-224-9', numLuz:'EDN-55302', numEscritura:'F°201 Reg. 7 (2009)',
+    superficie:'180 m² cub. / 320 m² lote', ambientes:5, cochera:'Sí (2)',
+    valorEstimado:420000, alquilerMensual:980000, gastosFijos:210000, gastosExtraordinarios:0,
+    fechaCompra:'2009-11-02', valorCompra:190000,
+    estado:'alquilada',
+    inquilino:{nombre:'Familia Sosa Duarte', dni:'CUIT 27-29887766-3', tel:'11-2233-9987', email:'sosaduarte@mail.com'},
+    contrato:{inicio:'2023-10-01', fin:'2026-09-30', duracionMeses:36, renovacion:'a definir'},
+    deposito:{monto:980000, donde:'Plazo fijo Banco Galicia'},
+    garantiaAdicional:'Garante propietario (padre del inquilino)',
+    moraDias:12, ultimoAumento:'2026-04-01', proximoAumento:'2026-10-01',
+    seguroVencimiento:'2027-01-20', documentacion:'Completa'
+  },
+  {
+    referencia:'BSA-004', tipo:'Oficina', uso:'Comercial',
+    direccion:{calle:'Av. Corrientes', numero:'1234', piso:'8º "A"', ciudad:'CABA', provincia:'CABA', pais:'Argentina', cp:'C1043'},
+    partidaARBA:'—', partidaMunicipal:'055-221-07', numGas:'—', numLuz:'EDS-99123', numEscritura:'F°88 Reg. 2 (2018)',
+    superficie:'48 m² cub.', ambientes:2, cochera:'No',
+    valorEstimado:130000, alquilerMensual:410000, gastosFijos:150000, gastosExtraordinarios:0,
+    fechaCompra:'2018-02-14', valorCompra:95000,
+    estado:'alquilada',
+    inquilino:{nombre:'Estudio Contable Vega SRL', dni:'CUIT 30-71234567-8', tel:'11-6677-1122', email:'admin@vegasrl.com.ar'},
+    contrato:{inicio:'2025-01-15', fin:'2026-09-14', duracionMeses:24, renovacion:'automática 12m'},
+    deposito:{monto:410000, donde:'Caja de ahorro propietario'},
+    garantiaAdicional:'Seguro de caución (Porteña)',
+    moraDias:0, ultimoAumento:'2026-01-15', proximoAumento:'2026-07-15',
+    seguroVencimiento:'2026-08-30', documentacion:'Completa'
+  },
+  {
+    referencia:'BSA-005', tipo:'Departamento', uso:'Residencial',
+    direccion:{calle:'Bulnes', numero:'788', piso:'2º C', ciudad:'CABA', provincia:'CABA', pais:'Argentina', cp:'C1176'},
+    partidaARBA:'—', partidaMunicipal:'201-556-02', numGas:'0012-334-1', numLuz:'EDN-33847', numEscritura:'F°67 Reg. 9 (2020)',
+    superficie:'45 m² cub.', ambientes:2, cochera:'No',
+    valorEstimado:110000, alquilerMensual:0, gastosFijos:120000, gastosExtraordinarios:610000,
+    fechaCompra:'2020-08-05', valorCompra:88000,
+    estado:'reforma',
+    inquilino:null, contrato:null, deposito:null,
+    garantiaAdicional:'—', moraDias:null, ultimoAumento:'—', proximoAumento:'—',
+    seguroVencimiento:'2026-10-01', documentacion:'Completa'
+  },
+  {
+    referencia:'BSA-006', tipo:'Galpón', uso:'Comercial',
+    direccion:{calle:'Ruta 8 km 42', numero:'S/N', piso:'—', ciudad:'Pilar', provincia:'Buenos Aires', pais:'Argentina', cp:'B1629'},
+    partidaARBA:'081-990045-1', partidaMunicipal:'PIL-9021', numGas:'—', numLuz:'EDN-70012', numEscritura:'F°15 Reg. 3 (2014)',
+    superficie:'800 m² cub.', ambientes:'—', cochera:'Playón',
+    valorEstimado:390000, alquilerMensual:1450000, gastosFijos:260000, gastosExtraordinarios:0,
+    fechaCompra:'2014-05-30', valorCompra:210000,
+    estado:'alquilada',
+    inquilino:{nombre:'Logística del Sur SA', dni:'CUIT 30-68877211-5', tel:'11-3344-8800', email:'contacto@logisticasur.com'},
+    contrato:{inicio:'2022-06-01', fin:'2026-09-05', duracionMeses:48, renovacion:'en negociación'},
+    deposito:{monto:1450000, donde:'Plazo fijo Banco Nación'},
+    garantiaAdicional:'Hipoteca sobre otro inmueble',
+    moraDias:0, ultimoAumento:'2026-06-01', proximoAumento:'2026-12-01',
+    seguroVencimiento:'2026-09-10', documentacion:'Completa'
+  },
+  {
+    referencia:'BSA-007', tipo:'Departamento', uso:'Residencial',
+    direccion:{calle:'Mitre', numero:'1560', piso:'6º A', ciudad:'Rosario', provincia:'Santa Fe', pais:'Argentina', cp:'S2000'},
+    partidaARBA:'—', partidaMunicipal:'ROS-4471', numGas:'0055-112-8', numLuz:'EPE-22190', numEscritura:'F°33 Reg. 5 (2017)',
+    superficie:'58 m² cub.', ambientes:3, cochera:'No',
+    valorEstimado:98000, alquilerMensual:340000, gastosFijos:110000, gastosExtraordinarios:0,
+    fechaCompra:'2017-09-18', valorCompra:62000,
+    estado:'alquilada',
+    inquilino:{nombre:'Lucía Fernández', dni:'35.667.221', tel:'341-455-8890', email:'lu.fernandez@mail.com'},
+    contrato:{inicio:'2025-11-01', fin:'2027-10-31', duracionMeses:24, renovacion:'automática 12m'},
+    deposito:{monto:340000, donde:'Caja de ahorro propietario'},
+    garantiaAdicional:'Garantía propietaria',
+    moraDias:0, ultimoAumento:'2026-05-01', proximoAumento:'2026-11-01',
+    seguroVencimiento:'2027-02-01', documentacion:'Completa'
+  },
+  {
+    referencia:'BSA-008', tipo:'Casa', uso:'Residencial',
+    direccion:{calle:'Los Alerces', numero:'220', piso:'—', ciudad:'Tigre', provincia:'Buenos Aires', pais:'Argentina', cp:'B1648'},
+    partidaARBA:'060-334211-9', partidaMunicipal:'TIG-1187', numGas:'0078-990-4', numLuz:'EDN-40021', numEscritura:'F°91 Reg. 1 (2019)',
+    superficie:'140 m² cub. / 400 m² lote', ambientes:4, cochera:'Sí (1)',
+    valorEstimado:260000, alquilerMensual:0, gastosFijos:140000, gastosExtraordinarios:0,
+    fechaCompra:'2019-12-01', valorCompra:175000,
+    estado:'venta',
+    inquilino:null, contrato:null, deposito:null,
+    garantiaAdicional:'—', moraDias:null, ultimoAumento:'—', proximoAumento:'—',
+    seguroVencimiento:'2026-09-28', documentacion:'Completa'
+  },
+  {
+    referencia:'BSA-009', tipo:'Departamento', uso:'Residencial',
+    direccion:{calle:'Av. Pueyrredón', numero:'1122', piso:'11º D', ciudad:'CABA', provincia:'CABA', pais:'Argentina', cp:'C1032'},
+    partidaARBA:'—', partidaMunicipal:'077-119-03', numGas:'0021-556-3', numLuz:'EDS-66120', numEscritura:'F°122 Reg. 6 (2021)',
+    superficie:'38 m² cub.', ambientes:1, cochera:'No',
+    valorEstimado:92000, alquilerMensual:295000, gastosFijos:100000, gastosExtraordinarios:0,
+    fechaCompra:'2021-04-22', valorCompra:80000,
+    estado:'alquilada',
+    inquilino:{nombre:'Julián Ríos', dni:'38.221.005', tel:'11-7788-2233', email:'julian.rios@mail.com'},
+    contrato:{inicio:'2024-10-01', fin:'2026-09-30', duracionMeses:24, renovacion:'a definir'},
+    deposito:{monto:295000, donde:'Caja de ahorro propietario'},
+    garantiaAdicional:'Seguro de caución (Federal Sur)',
+    moraDias:34, ultimoAumento:'2026-04-01', proximoAumento:'2026-10-01',
+    seguroVencimiento:'2026-12-12', documentacion:'Completa'
+  },
+  {
+    referencia:'BSA-010', tipo:'Local comercial', uso:'Comercial',
+    direccion:{calle:'Belgrano', numero:'980', piso:'PB', ciudad:'Mar del Plata', provincia:'Buenos Aires', pais:'Argentina', cp:'B7600'},
+    partidaARBA:'070-556689-2', partidaMunicipal:'MDP-2298', numGas:'—', numLuz:'EDEA-11004', numEscritura:'F°58 Reg. 8 (2016)',
+    superficie:'70 m² cub.', ambientes:1, cochera:'No',
+    valorEstimado:155000, alquilerMensual:480000, gastosFijos:130000, gastosExtraordinarios:0,
+    fechaCompra:'2016-07-11', valorCompra:98000,
+    estado:'alquilada',
+    inquilino:{nombre:'Heladería Costa Azul SRL', dni:'CUIT 30-70011223-4', tel:'223-455-6677', email:'costaazul@mail.com'},
+    contrato:{inicio:'2023-08-01', fin:'2026-11-15', duracionMeses:36, renovacion:'automática 12m'},
+    deposito:{monto:480000, donde:'Plazo fijo Banco Provincia'},
+    garantiaAdicional:'Garante propietario',
+    moraDias:0, ultimoAumento:'2026-02-01', proximoAumento:'2026-08-01',
+    seguroVencimiento:'2026-09-01', documentacion:'Falta plano actualizado'
+  }
+];
+
+function diasEntre(fechaStr){
+  const f = new Date(fechaStr);
+  return Math.round((f - HOY) / (1000*60*60*24));
+}
+function fmtMoneda(n){
+  return '$' + Number(n).toLocaleString('es-AR');
+}
+function fmtFecha(f){
+  if(!f || f==='—') return '—';
+  const [y,m,d] = f.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// ---------- KPIs ----------
+function renderKPIs(){
+  const total = PROPIEDADES.length;
+  const alquiladas = PROPIEDADES.filter(p=>p.estado==='alquilada').length;
+  const vacias = PROPIEDADES.filter(p=>p.estado==='vacia').length;
+  const ingresoMensual = PROPIEDADES.reduce((a,p)=>a+(p.alquilerMensual||0),0);
+  const enMora = PROPIEDADES.filter(p=>p.moraDias>0).length;
+
+  const kpis = [
+    {label:'Propiedades', value:total, sub:'en la cartera'},
+    {label:'Ocupación', value:`${alquiladas}/${total}`, sub:`${vacias} vacías`, cls:'teal'},
+    {label:'Ingreso mensual', value:fmtMoneda(ingresoMensual), sub:'alquileres activos'},
+    {label:'En mora', value:enMora, sub:'inquilinos atrasados', cls: enMora>0 ? 'red':''},
+    {label:'Rentabilidad prom.', value: calcRentPromedio()+'%', sub:'anual s/ valor estimado'}
+  ];
+  document.getElementById('kpis').innerHTML = kpis.map(k=>`
+    <div class="kpi">
+      <div class="label">${k.label}</div>
+      <div class="value ${k.cls||''}">${k.value}</div>
+      <div class="sub">${k.sub}</div>
+    </div>`).join('');
+}
+function calcRentPromedio(){
+  const activos = PROPIEDADES.filter(p=>p.alquilerMensual>0);
+  if(!activos.length) return '0';
+  const prom = activos.reduce((a,p)=> a + (p.alquilerMensual*12/p.valorEstimado*100), 0) / activos.length;
+  return prom.toFixed(1);
+}
+
+// ---------- ALERTAS ----------
+function renderAlertas(){
+  const alertas = [];
+  PROPIEDADES.forEach(p=>{
+    if(p.contrato){
+      const d = diasEntre(p.contrato.fin);
+      if(d<=90 && d>=0){
+        alertas.push({tipo: d<=30?'urgente':'warn', ref:p.referencia, desc:`Contrato vence en ${d} días (${fmtFecha(p.contrato.fin)})`});
+      } else if(d<0){
+        alertas.push({tipo:'urgente', ref:p.referencia, desc:`Contrato vencido hace ${Math.abs(d)} días`});
+      }
+    }
+    if(p.moraDias>0){
+      alertas.push({tipo:'urgente', ref:p.referencia, desc:`Inquilino en mora: ${p.moraDias} días`});
+    }
+    if(p.seguroVencimiento){
+      const d = diasEntre(p.seguroVencimiento);
+      if(d<=60 && d>=0){
+        alertas.push({tipo:'warn', ref:p.referencia, desc:`Seguro vence en ${d} días (${fmtFecha(p.seguroVencimiento)})`});
+      }
+    }
+  });
+  document.getElementById('alertCount').textContent = alertas.length;
+  document.getElementById('alerts').innerHTML = alertas.length ? alertas.map(a=>`
+    <div class="alert-card ${a.tipo==='warn'?'warn':''}">
+      <div class="tag">${a.tipo==='urgente'?'Urgente':'Próximo vencimiento'}</div>
+      <div class="ref">${a.ref}</div>
+      <div class="desc">${a.desc}</div>
+    </div>`).join('') : `<div style="font-size:13px;color:var(--gray);padding:8px 0;">Sin alertas activas.</div>`;
+}
+
+// ---------- TABLA ----------
+let sortKey = 'referencia', sortDir = 1;
+
+function getFiltered(){
+  const q = document.getElementById('search').value.toLowerCase().trim();
+  const fEstado = document.getElementById('fEstado').value;
+  const fTipo = document.getElementById('fTipo').value;
+  const fMora = document.getElementById('fMora').value;
+
+  return PROPIEDADES.filter(p=>{
+    const dirStr = `${p.direccion.calle} ${p.direccion.numero} ${p.direccion.ciudad}`.toLowerCase();
+    const inqStr = p.inquilino ? p.inquilino.nombre.toLowerCase() : '';
+    const matchQ = !q || dirStr.includes(q) || p.referencia.toLowerCase().includes(q) || inqStr.includes(q);
+    const matchEstado = !fEstado || p.estado===fEstado;
+    const matchTipo = !fTipo || p.tipo===fTipo;
+    const matchMora = !fMora || (fMora==='mora' ? p.moraDias>0 : (p.moraDias===0));
+    return matchQ && matchEstado && matchTipo && matchMora;
+  });
+}
+
+function sortData(data){
+  return [...data].sort((a,b)=>{
+    let av, bv;
+    switch(sortKey){
+      case 'direccion': av=a.direccion.calle; bv=b.direccion.calle; break;
+      case 'inquilino': av=a.inquilino?a.inquilino.nombre:''; bv=b.inquilino?b.inquilino.nombre:''; break;
+      case 'finContrato': av=a.contrato?a.contrato.fin:'9999'; bv=b.contrato?b.contrato.fin:'9999'; break;
+      case 'mora': av=a.moraDias||0; bv=b.moraDias||0; break;
+      case 'alquiler': av=a.alquilerMensual||0; bv=b.alquilerMensual||0; break;
+      default: av=a[sortKey]; bv=b[sortKey];
+    }
+    if(typeof av==='string') return av.localeCompare(bv)*sortDir;
+    return (av-bv)*sortDir;
+  });
+}
+
+function renderTabla(){
+  const data = sortData(getFiltered());
+  document.getElementById('resultCount').textContent = `${data.length} de ${PROPIEDADES.length} propiedades`;
+
+  document.getElementById('tbody').innerHTML = data.map((p,i)=>{
+    const idx = PROPIEDADES.indexOf(p);
+    const contratoFin = p.contrato ? fmtFecha(p.contrato.fin) : '—';
+    const mora = p.moraDias===null ? '—' : (p.moraDias>0 ? `<span class="mora-tag">${p.moraDias}d</span>` : `<span class="mora-ok">Al día</span>`);
+    return `
+    <tr data-idx="${idx}">
+      <td class="ref">${p.referencia}</td>
+      <td class="dir">
+        <div class="calle">${p.direccion.calle} ${p.direccion.numero}</div>
+        <div class="ciudad">${p.direccion.ciudad}, ${p.direccion.provincia}</div>
+      </td>
+      <td>${p.tipo}</td>
+      <td><span class="stamp ${p.estado}">${labelEstado(p.estado)}</span></td>
+      <td>${p.inquilino ? p.inquilino.nombre : '<span style="color:var(--gray)">—</span>'}</td>
+      <td class="num">${contratoFin}</td>
+      <td class="num">${mora}</td>
+      <td class="num">${p.alquilerMensual ? fmtMoneda(p.alquilerMensual) : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  document.querySelectorAll('#tbody tr').forEach(tr=>{
+    tr.addEventListener('click', ()=> openDrawer(Number(tr.dataset.idx)));
+  });
+}
+function labelEstado(e){
+  return {alquilada:'Alquilada', vacia:'Vacía', venta:'En venta', reforma:'En reforma'}[e] || e;
+}
+
+// ---------- DRAWER (ficha completa) ----------
+function openDrawer(idx){
+  const p = PROPIEDADES[idx];
+  const d = p.direccion;
+  const rentab = p.alquilerMensual ? (p.alquilerMensual*12/p.valorEstimado*100).toFixed(1)+'%' : '—';
+
+  document.getElementById('drawer').innerHTML = `
+    <button class="drawer-close" id="drawerClose">✕</button>
+    <div class="drawer-head">
+      <div class="ref">${p.referencia}</div>
+      <h2>${d.calle} ${d.numero}</h2>
+      <div class="sub">${d.ciudad}, ${d.provincia} · ${d.pais} · CP ${d.cp}</div>
+      <div class="drawer-toolbar">
+        <button class="drawer-btn" id="drawerEdit">Editar</button>
+        <button class="drawer-btn" id="drawerReceipt">Comprobante de pago</button>
+      </div>
+    </div>
+    <div class="drawer-body">
+
+      <div class="section">
+        <div class="section-title">Identificación</div>
+        <div class="field-grid">
+          <div class="field"><div class="k">Tipo</div><div class="v">${p.tipo}</div></div>
+          <div class="field"><div class="k">Uso actual</div><div class="v">${p.uso}</div></div>
+          <div class="field"><div class="k">Superficie</div><div class="v">${p.superficie}</div></div>
+          <div class="field"><div class="k">Ambientes / cochera</div><div class="v">${p.ambientes} · ${p.cochera}</div></div>
+          <div class="field"><div class="k">Partida ARBA</div><div class="v mono">${p.partidaARBA}</div></div>
+          <div class="field"><div class="k">Partida municipal</div><div class="v mono">${p.partidaMunicipal}</div></div>
+          <div class="field"><div class="k">Nº Gas</div><div class="v mono">${p.numGas}</div></div>
+          <div class="field"><div class="k">Nº Luz</div><div class="v mono">${p.numLuz}</div></div>
+          <div class="field full"><div class="k">Escritura</div><div class="v mono">${p.numEscritura}</div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Económico</div>
+        <div class="field-grid">
+          <div class="field"><div class="k">Valor estimado</div><div class="v">${fmtMoneda(p.valorEstimado)}</div></div>
+          <div class="field"><div class="k">Alquiler mensual</div><div class="v">${p.alquilerMensual?fmtMoneda(p.alquilerMensual):'—'}</div></div>
+          <div class="field"><div class="k">Gastos fijos/mes</div><div class="v">${fmtMoneda(p.gastosFijos)}</div></div>
+          <div class="field"><div class="k">Gastos extraordinarios</div><div class="v">${p.gastosExtraordinarios?fmtMoneda(p.gastosExtraordinarios):'—'}</div></div>
+          <div class="field"><div class="k">Rentabilidad anual</div><div class="v">${rentab}</div></div>
+          <div class="field"><div class="k">Compra</div><div class="v">${fmtFecha(p.fechaCompra)} · ${fmtMoneda(p.valorCompra)}</div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Ocupación</div>
+        <div class="field-grid">
+          <div class="field full"><div class="k">Estado</div><div class="v"><span class="stamp ${p.estado}">${labelEstado(p.estado)}</span></div></div>
+          ${p.inquilino ? `
+          <div class="field"><div class="k">Inquilino</div><div class="v">${p.inquilino.nombre}</div></div>
+          <div class="field"><div class="k">DNI/CUIT</div><div class="v mono">${p.inquilino.dni}</div></div>
+          <div class="field"><div class="k">Teléfono</div><div class="v mono">${p.inquilino.tel}</div></div>
+          <div class="field"><div class="k">Email</div><div class="v mono">${p.inquilino.email}</div></div>
+          <div class="field"><div class="k">Inicio contrato</div><div class="v">${fmtFecha(p.contrato.inicio)}</div></div>
+          <div class="field"><div class="k">Fin contrato</div><div class="v">${fmtFecha(p.contrato.fin)}</div></div>
+          <div class="field"><div class="k">Duración / renovación</div><div class="v">${p.contrato.duracionMeses}m · ${p.contrato.renovacion}</div></div>
+          <div class="field"><div class="k">Mora actual</div><div class="v">${p.moraDias>0?`<span class="mora-tag">${p.moraDias} días</span>`:'Al día'}</div></div>
+          <div class="field"><div class="k">Depósito garantía</div><div class="v">${fmtMoneda(p.deposito.monto)}</div></div>
+          <div class="field"><div class="k">Dónde está depositado</div><div class="v">${p.deposito.donde}</div></div>
+          <div class="field full"><div class="k">Garantía adicional</div><div class="v">${p.garantiaAdicional}</div></div>
+          <div class="field"><div class="k">Último aumento</div><div class="v">${fmtFecha(p.ultimoAumento)}</div></div>
+          <div class="field"><div class="k">Próximo aumento</div><div class="v">${fmtFecha(p.proximoAumento)}</div></div>
+          ` : `<div class="field full"><div class="v" style="color:var(--gray)">Sin inquilino actual.</div></div>`}
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Seguros y documentación</div>
+        <div class="field-grid">
+          <div class="field"><div class="k">Seguro vence</div><div class="v">${fmtFecha(p.seguroVencimiento)}</div></div>
+          <div class="field"><div class="k">Documentación</div><div class="v">${p.documentacion}</div></div>
+        </div>
+      </div>
+
+    </div>
+  `;
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('drawerEdit').addEventListener('click', ()=> openForm(idx));
+  document.getElementById('drawerReceipt').addEventListener('click', ()=> openReceiptForm(idx));
+}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+document.getElementById('overlay').addEventListener('click', closeDrawer);
+
+// ---------- FORMULARIO (alta / edición) ----------
+function gv(id){ const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function gn(id){ const v = gv(id); return v==='' ? 0 : Number(v); }
+
+function openForm(idx){
+  const p = idx===null ? {} : PROPIEDADES[idx];
+  const d = p.direccion || {};
+  const inq = p.inquilino || {};
+  const con = p.contrato || {};
+  const dep = p.deposito || {};
+  const tipos = ['Casa','Departamento','Local comercial','Oficina','Galpón','Otro'];
+  const usos = ['Residencial','Comercial','Mixto','Vacío'];
+
+  document.getElementById('drawer').innerHTML = `
+    <button class="drawer-close" id="drawerClose">✕</button>
+    <div class="drawer-head">
+      <div class="ref">${idx===null ? 'Nueva ficha' : 'Editar · '+p.referencia}</div>
+      <h2>${idx===null ? 'Agregar propiedad' : 'Editar propiedad'}</h2>
+    </div>
+    <div class="drawer-body">
+
+      <div class="section">
+        <div class="section-title">Identificación</div>
+        <div class="form-grid">
+          <div class="form-field"><label>Referencia</label><input id="f_referencia" value="${p.referencia||''}" placeholder="ej: BSA-011"></div>
+          <div class="form-field"><label>Tipo</label><select id="f_tipo">${tipos.map(t=>`<option ${p.tipo===t?'selected':''}>${t}</option>`).join('')}</select></div>
+          <div class="form-field"><label>Uso actual</label><select id="f_uso">${usos.map(t=>`<option ${p.uso===t?'selected':''}>${t}</option>`).join('')}</select></div>
+          <div class="form-field"><label>Estado</label>
+            <select id="f_estado">
+              <option value="alquilada" ${p.estado==='alquilada'?'selected':''}>Alquilada</option>
+              <option value="vacia" ${p.estado==='vacia'?'selected':''}>Vacía</option>
+              <option value="venta" ${p.estado==='venta'?'selected':''}>En venta</option>
+              <option value="reforma" ${p.estado==='reforma'?'selected':''}>En reforma</option>
+            </select>
+          </div>
+          <div class="form-field"><label>Calle</label><input id="f_calle" value="${d.calle||''}"></div>
+          <div class="form-field"><label>Número</label><input id="f_numero" value="${d.numero||''}"></div>
+          <div class="form-field"><label>Ciudad</label><input id="f_ciudad" value="${d.ciudad||''}"></div>
+          <div class="form-field"><label>Provincia / Estado</label><input id="f_provincia" value="${d.provincia||''}"></div>
+          <div class="form-field"><label>País</label><input id="f_pais" value="${d.pais||'Argentina'}"></div>
+          <div class="form-field"><label>Código postal</label><input id="f_cp" value="${d.cp||''}"></div>
+          <div class="form-field"><label>Superficie</label><input id="f_superficie" value="${p.superficie||''}" placeholder="ej: 60 m² cub."></div>
+          <div class="form-field"><label>Ambientes</label><input id="f_ambientes" value="${p.ambientes||''}"></div>
+          <div class="form-field"><label>Cochera</label><input id="f_cochera" value="${p.cochera||''}"></div>
+          <div class="form-field"><label>Partida ARBA</label><input id="f_partidaARBA" value="${p.partidaARBA||''}"></div>
+          <div class="form-field"><label>Partida municipal</label><input id="f_partidaMunicipal" value="${p.partidaMunicipal||''}"></div>
+          <div class="form-field"><label>Nº Gas</label><input id="f_numGas" value="${p.numGas||''}"></div>
+          <div class="form-field"><label>Nº Luz</label><input id="f_numLuz" value="${p.numLuz||''}"></div>
+          <div class="form-field full"><label>Escritura</label><input id="f_numEscritura" value="${p.numEscritura||''}"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Económico</div>
+        <div class="form-grid">
+          <div class="form-field"><label>Valor estimado</label><input id="f_valorEstimado" type="number" value="${p.valorEstimado||''}"></div>
+          <div class="form-field"><label>Alquiler mensual</label><input id="f_alquilerMensual" type="number" value="${p.alquilerMensual||''}"></div>
+          <div class="form-field"><label>Gastos fijos / mes</label><input id="f_gastosFijos" type="number" value="${p.gastosFijos||''}"></div>
+          <div class="form-field"><label>Gastos extraordinarios</label><input id="f_gastosExtraordinarios" type="number" value="${p.gastosExtraordinarios||''}"></div>
+          <div class="form-field"><label>Fecha de compra</label><input id="f_fechaCompra" type="date" value="${p.fechaCompra&&p.fechaCompra!=='—'?p.fechaCompra:''}"></div>
+          <div class="form-field"><label>Valor de compra</label><input id="f_valorCompra" type="number" value="${p.valorCompra||''}"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Ocupación (dejar vacío si no aplica)</div>
+        <div class="form-grid">
+          <div class="form-field"><label>Inquilino · Nombre</label><input id="f_inqNombre" value="${inq.nombre||''}"></div>
+          <div class="form-field"><label>DNI / CUIT</label><input id="f_inqDni" value="${inq.dni||''}"></div>
+          <div class="form-field"><label>Teléfono</label><input id="f_inqTel" value="${inq.tel||''}"></div>
+          <div class="form-field"><label>Email</label><input id="f_inqEmail" value="${inq.email||''}"></div>
+          <div class="form-field"><label>Inicio contrato</label><input id="f_contratoInicio" type="date" value="${con.inicio||''}"></div>
+          <div class="form-field"><label>Fin contrato</label><input id="f_contratoFin" type="date" value="${con.fin||''}"></div>
+          <div class="form-field"><label>Duración (meses)</label><input id="f_duracionMeses" type="number" value="${con.duracionMeses||''}"></div>
+          <div class="form-field"><label>Renovación</label><input id="f_renovacion" value="${con.renovacion||''}"></div>
+          <div class="form-field"><label>Días de mora</label><input id="f_moraDias" type="number" value="${p.moraDias||''}"></div>
+          <div class="form-field"><label>Depósito · Monto</label><input id="f_depositoMonto" type="number" value="${dep.monto||''}"></div>
+          <div class="form-field"><label>Depósito · Dónde</label><input id="f_depositoDonde" value="${dep.donde||''}"></div>
+          <div class="form-field full"><label>Garantía adicional</label><input id="f_garantiaAdicional" value="${p.garantiaAdicional||''}"></div>
+          <div class="form-field"><label>Último aumento</label><input id="f_ultimoAumento" type="date" value="${p.ultimoAumento&&p.ultimoAumento!=='—'?p.ultimoAumento:''}"></div>
+          <div class="form-field"><label>Próximo aumento</label><input id="f_proximoAumento" type="date" value="${p.proximoAumento&&p.proximoAumento!=='—'?p.proximoAumento:''}"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Seguros y documentación</div>
+        <div class="form-grid">
+          <div class="form-field"><label>Seguro vence</label><input id="f_seguroVencimiento" type="date" value="${p.seguroVencimiento&&p.seguroVencimiento!=='—'?p.seguroVencimiento:''}"></div>
+          <div class="form-field"><label>Documentación</label><input id="f_documentacion" value="${p.documentacion||''}"></div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-save" id="btnSave">Guardar</button>
+        ${idx!==null ? `<button class="btn-delete" id="btnDelete">Eliminar</button>` : ''}
+        <button class="btn-cancel" id="btnCancelForm">Cancelar</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('btnCancelForm').addEventListener('click', closeDrawer);
+  document.getElementById('btnSave').addEventListener('click', ()=> saveForm(idx));
+  if(idx!==null){
+    document.getElementById('btnDelete').addEventListener('click', ()=> deleteProperty(idx));
+  }
+}
+
+function collectFormData(){
+  const inqNombre = gv('f_inqNombre');
+  const contratoFin = gv('f_contratoFin');
+  const depositoMonto = gv('f_depositoMonto');
+  return {
+    referencia: gv('f_referencia'),
+    tipo: gv('f_tipo'),
+    uso: gv('f_uso'),
+    direccion:{ calle:gv('f_calle'), numero:gv('f_numero'), ciudad:gv('f_ciudad'), provincia:gv('f_provincia'), pais:gv('f_pais')||'Argentina', cp:gv('f_cp') },
+    partidaARBA:gv('f_partidaARBA')||'—',
+    partidaMunicipal:gv('f_partidaMunicipal')||'—',
+    numGas:gv('f_numGas')||'—',
+    numLuz:gv('f_numLuz')||'—',
+    numEscritura:gv('f_numEscritura')||'—',
+    superficie:gv('f_superficie')||'—',
+    ambientes:gv('f_ambientes')||'—',
+    cochera:gv('f_cochera')||'—',
+    valorEstimado:gn('f_valorEstimado'),
+    alquilerMensual:gn('f_alquilerMensual'),
+    gastosFijos:gn('f_gastosFijos'),
+    gastosExtraordinarios:gn('f_gastosExtraordinarios'),
+    fechaCompra:gv('f_fechaCompra')||'—',
+    valorCompra:gn('f_valorCompra'),
+    estado:gv('f_estado'),
+    inquilino: inqNombre ? { nombre:inqNombre, dni:gv('f_inqDni'), tel:gv('f_inqTel'), email:gv('f_inqEmail') } : null,
+    contrato: contratoFin ? { inicio:gv('f_contratoInicio'), fin:contratoFin, duracionMeses:gn('f_duracionMeses'), renovacion:gv('f_renovacion')||'—' } : null,
+    deposito: depositoMonto ? { monto:gn('f_depositoMonto'), donde:gv('f_depositoDonde')||'—' } : null,
+    garantiaAdicional:gv('f_garantiaAdicional')||'—',
+    moraDias: gv('f_moraDias')==='' ? (inqNombre?0:null) : gn('f_moraDias'),
+    ultimoAumento:gv('f_ultimoAumento')||'—',
+    proximoAumento:gv('f_proximoAumento')||'—',
+    seguroVencimiento:gv('f_seguroVencimiento')||null,
+    documentacion:gv('f_documentacion')||'—'
+  };
+}
+
+function saveForm(idx){
+  const p = collectFormData();
+  if(!p.referencia || !p.direccion.calle){
+    alert('Completá al menos la Referencia y la Calle.');
+    return;
+  }
+  if(idx===null){ PROPIEDADES.push(p); } else { PROPIEDADES[idx] = p; }
+  guardarDatos();
+  closeDrawer();
+  renderKPIs(); renderAlertas(); renderTabla();
+}
+
+function deleteProperty(idx){
+  if(!confirm('¿Eliminar esta propiedad de la cartera?')) return;
+  PROPIEDADES.splice(idx,1);
+  guardarDatos();
+  closeDrawer();
+  renderKPIs(); renderAlertas(); renderTabla();
+}
+
+// ---------- PERSISTENCIA ----------
+async function cargarDatos(){
+  try{
+    const raw = localStorage.getItem('propiedades');
+    if(raw){
+      const stored = JSON.parse(raw);
+      if(Array.isArray(stored)){
+        PROPIEDADES.length = 0;
+        PROPIEDADES.push(...stored);
+      }
+    }
+  }catch(e){
+    console.error('No se pudieron cargar los datos guardados', e);
+  }
+}
+async function guardarDatos(){
+  try{
+    localStorage.setItem('propiedades', JSON.stringify(PROPIEDADES));
+  }catch(e){
+    console.error('No se pudo guardar', e);
+    alert('No se pudo guardar en este dispositivo. Exportá un respaldo antes de cerrar.');
+  }
+}
+
+// ---------- EXPORTAR A EXCEL ----------
+function exportarExcel(){
+  const filas = PROPIEDADES.map(p=>({
+    'Referencia':p.referencia,
+    'Calle':p.direccion.calle, 'Número':p.direccion.numero, 'Ciudad':p.direccion.ciudad,
+    'Provincia':p.direccion.provincia, 'País':p.direccion.pais, 'CP':p.direccion.cp,
+    'Tipo':p.tipo, 'Uso':p.uso, 'Superficie':p.superficie, 'Ambientes':p.ambientes, 'Cochera':p.cochera,
+    'Partida ARBA':p.partidaARBA, 'Partida municipal':p.partidaMunicipal, 'Nº Gas':p.numGas, 'Nº Luz':p.numLuz,
+    'Escritura':p.numEscritura,
+    'Valor estimado':p.valorEstimado, 'Alquiler mensual':p.alquilerMensual, 'Gastos fijos':p.gastosFijos,
+    'Gastos extraordinarios':p.gastosExtraordinarios, 'Fecha de compra':p.fechaCompra, 'Valor de compra':p.valorCompra,
+    'Estado':labelEstado(p.estado),
+    'Inquilino':p.inquilino?p.inquilino.nombre:'', 'DNI/CUIT':p.inquilino?p.inquilino.dni:'',
+    'Teléfono':p.inquilino?p.inquilino.tel:'', 'Email':p.inquilino?p.inquilino.email:'',
+    'Inicio contrato':p.contrato?p.contrato.inicio:'', 'Fin contrato':p.contrato?p.contrato.fin:'',
+    'Duración (meses)':p.contrato?p.contrato.duracionMeses:'', 'Renovación':p.contrato?p.contrato.renovacion:'',
+    'Días de mora':p.moraDias, 'Depósito monto':p.deposito?p.deposito.monto:'', 'Depósito dónde':p.deposito?p.deposito.donde:'',
+    'Garantía adicional':p.garantiaAdicional, 'Último aumento':p.ultimoAumento, 'Próximo aumento':p.proximoAumento,
+    'Seguro vence':p.seguroVencimiento, 'Documentación':p.documentacion
+  }));
+  const ws = XLSX.utils.json_to_sheet(filas);
+  ws['!cols'] = Object.keys(filas[0]||{}).map(()=>({wch:16}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Propiedades');
+  const fecha = HOY.toISOString().slice(0,10);
+  XLSX.writeFile(wb, `propiedades_${fecha}.xlsx`);
+}
+
+// ---------- COMPROBANTE DE PAGO ----------
+function openReceiptForm(prefillIdx){
+  if(!PROPIEDADES.length){ alert('Primero agregá al menos una propiedad.'); return; }
+  const opciones = PROPIEDADES.map((p,i)=>{
+    const inq = p.inquilino ? ' · '+p.inquilino.nombre : '';
+    return `<option value="${i}" ${i===prefillIdx?'selected':''}>${p.referencia} — ${p.direccion.calle} ${p.direccion.numero}${inq}</option>`;
+  }).join('');
+
+  document.getElementById('drawer').innerHTML = `
+    <button class="drawer-close" id="drawerClose">✕</button>
+    <div class="drawer-head">
+      <div class="ref">Nuevo comprobante</div>
+      <h2>Comprobante de pago</h2>
+      <div class="sub">Se descarga como PDF listo para enviar o imprimir.</div>
+    </div>
+    <div class="drawer-body">
+      <div class="section">
+        <div class="form-grid single">
+          <div class="form-field"><label>Propiedad</label><select id="r_propiedad">${opciones}</select></div>
+        </div>
+        <div class="form-grid" style="margin-top:12px;">
+          <div class="form-field"><label>Fecha de pago</label><input id="r_fecha" type="date" value="${HOY.toISOString().slice(0,10)}"></div>
+          <div class="form-field"><label>Período correspondiente</label><input id="r_periodo" placeholder="ej: Agosto 2026"></div>
+          <div class="form-field"><label>Concepto</label>
+            <select id="r_concepto">
+              <option>Alquiler</option>
+              <option>Expensas</option>
+              <option>Depósito en garantía</option>
+              <option>Reparación</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="form-field"><label>Monto</label><input id="r_monto" type="number" placeholder="0"></div>
+          <div class="form-field"><label>Método de pago</label>
+            <select id="r_metodo">
+              <option>Transferencia bancaria</option>
+              <option>Efectivo</option>
+              <option>Cheque</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="form-field"><label>N.º de operación (opcional)</label><input id="r_operacion"></div>
+          <div class="form-field full"><label>Observaciones (opcional)</label><input id="r_observaciones"></div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-save" id="btnGenerar">Generar PDF</button>
+        <button class="btn-cancel" id="btnCancelForm">Cancelar</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+  document.getElementById('btnCancelForm').addEventListener('click', closeDrawer);
+  document.getElementById('btnGenerar').addEventListener('click', generarComprobante);
+}
+
+async function siguienteNumeroRecibo(){
+  let n = Number(localStorage.getItem('reciboCounter') || '0') + 1;
+  try{ localStorage.setItem('reciboCounter', String(n)); }catch(e){}
+  return n;
+}
+
+async function generarComprobante(){
+  const idx = Number(gv('r_propiedad'));
+  const p = PROPIEDADES[idx];
+  const monto = gn('r_monto');
+  if(!p){ alert('Elegí una propiedad.'); return; }
+  if(!monto){ alert('Ingresá un monto mayor a 0.'); return; }
+
+  const data = {
+    fecha: gv('r_fecha') || HOY.toISOString().slice(0,10),
+    periodo: gv('r_periodo'),
+    concepto: gv('r_concepto'),
+    monto,
+    metodo: gv('r_metodo'),
+    operacion: gv('r_operacion'),
+    observaciones: gv('r_observaciones')
+  };
+  const btn = document.getElementById('btnGenerar');
+  btn.disabled = true; btn.textContent = 'Generando…';
+  const numero = await siguienteNumeroRecibo();
+  crearPDFRecibo(p, data, numero);
+  closeDrawer();
+}
+
+function crearPDFRecibo(p, data, numero){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'pt', format:'a4' });
+  const left = 56, right = 540;
+  let y = 64;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.setTextColor(20);
+  doc.text('COMPROBANTE DE PAGO', left, y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(110);
+  doc.text(`N.° ${String(numero).padStart(4,'0')}`, right, y, {align:'right'});
+  y += 10;
+  doc.setDrawColor(190); doc.line(left, y, right, y);
+  y += 30;
+
+  const campo = (label, valor)=>{
+    doc.setFontSize(9.5); doc.setTextColor(130);
+    doc.text(label.toUpperCase(), left, y);
+    doc.setFontSize(11.5); doc.setTextColor(20);
+    doc.text(String(valor||'—'), left, y+15);
+    y += 36;
+  };
+
+  campo('Fecha de emisión', fmtFecha(data.fecha));
+  campo('Inmueble', `${p.direccion.calle} ${p.direccion.numero}, ${p.direccion.ciudad}, ${p.direccion.provincia}  ·  Ref. ${p.referencia}  ·  ${p.tipo}`);
+  campo('Inquilino / pagador', p.inquilino ? `${p.inquilino.nombre}  ·  DNI/CUIT ${p.inquilino.dni||'—'}` : '—');
+
+  doc.setDrawColor(190); doc.line(left, y, right, y);
+  y += 26;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(11.5); doc.setTextColor(20);
+  doc.text('DETALLE DEL PAGO', left, y);
+  y += 22;
+
+  const filas = [
+    ['Período', data.periodo || '—'],
+    ['Concepto', data.concepto || '—'],
+    ['Método de pago', data.metodo || '—'],
+    ['N.° de operación', data.operacion || '—']
+  ];
+  doc.setFont('helvetica','normal'); doc.setFontSize(10.5);
+  filas.forEach(([k,v])=>{
+    doc.setTextColor(130); doc.text(k, left, y);
+    doc.setTextColor(20); doc.text(String(v), left+150, y);
+    y += 20;
+  });
+
+  if(data.observaciones){
+    doc.setTextColor(130); doc.text('Observaciones', left, y);
+    doc.setTextColor(20);
+    const lineas = doc.splitTextToSize(data.observaciones, right-left-150);
+    doc.text(lineas, left+150, y);
+    y += 20 * lineas.length;
+  }
+
+  y += 14;
+  doc.setDrawColor(190); doc.line(left, y, right, y);
+  y += 34;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(20);
+  doc.text('TOTAL', left, y);
+  doc.text(fmtMoneda(data.monto), right, y, {align:'right'});
+
+  y += 70;
+  doc.setDrawColor(150);
+  doc.line(left, y, left+180, y);
+  doc.line(right-180, y, right, y);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(130);
+  doc.text('Firma propietario', left, y+14);
+  doc.text('Firma inquilino', right-180, y+14);
+
+  doc.save(`comprobante_${p.referencia}_${data.fecha}.pdf`);
+}
+
+// ---------- INIT ----------
+function initFilters(){
+  const tipos = [...new Set(PROPIEDADES.map(p=>p.tipo))].sort();
+  const sel = document.getElementById('fTipo');
+  tipos.forEach(t=>{
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    sel.appendChild(opt);
+  });
+  ['search','fEstado','fTipo','fMora'].forEach(id=>{
+    document.getElementById(id).addEventListener('input', renderTabla);
+    document.getElementById(id).addEventListener('change', renderTabla);
+  });
+  document.querySelectorAll('thead th').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const key = th.dataset.key;
+      if(sortKey===key) sortDir *= -1; else { sortKey = key; sortDir = 1; }
+      renderTabla();
+    });
+  });
+  document.getElementById('btnAdd').addEventListener('click', ()=> openForm(null));
+  document.getElementById('btnExport').addEventListener('click', exportarExcel);
+  document.getElementById('btnReceipt').addEventListener('click', ()=> openReceiptForm(null));
+}
+
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e)=>{
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const b = document.getElementById('btnInstall');
+  if(b) b.style.display = 'inline-block';
+});
+window.addEventListener('appinstalled', ()=>{
+  deferredInstallPrompt = null;
+  const b = document.getElementById('btnInstall');
+  if(b) b.style.display = 'none';
+});
+
+async function init(){
+  await cargarDatos();
+  renderKPIs();
+  renderAlertas();
+  initFilters();
+  renderTabla();
+  const footer = document.getElementById('footerFecha');
+  if(footer) footer.textContent = `Datos guardados en este dispositivo · Hoy: ${HOY.toLocaleDateString('es-AR')} · Click en una fila para ver la ficha completa`;
+  const installBtn = document.getElementById('btnInstall');
+  if(installBtn){
+    installBtn.addEventListener('click', async ()=>{
+      if(!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      installBtn.style.display = 'none';
+    });
+  }
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
+}
+init();
+</script>
+</body>
+</html>
