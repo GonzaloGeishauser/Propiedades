@@ -1,5 +1,5 @@
-const CACHE = 'mis-propiedades-v2';
-const CORE = ['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./app-sync.js'];
+const CACHE = 'mis-propiedades-v3';
+const CORE = ['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./app-sync.js','./app-config.js'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)));
   self.skipWaiting();
